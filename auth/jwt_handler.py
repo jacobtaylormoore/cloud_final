@@ -24,14 +24,15 @@ from flask import url_for
 from authlib.integrations.flask_client import OAuth
 from six.moves.urllib.parse import urlencode
 # import boat
-# from main import app
+from src.main import app
+import src.constants as constants
 
-app = Flask(__name__)
-
+# app = Flask(__name__)
+app.secret_key = constants.SECRET_KEY
 # Update the values of the following 3 variables
-CLIENT_ID = '97byC11AB5Q1DFk3WgI9g4mIR2cPDCm9'
-CLIENT_SECRET = 'IwLA0xWS6YmpmwKy4qRSsAA_-xMMnV2h5vf87vvy2hMOuNsdkLVLbdF7VtWchFzS'
-DOMAIN = 'mooreja2-jwt.us.auth0.com'
+CLIENT_ID = constants.CLIENT_ID
+CLIENT_SECRET = constants.CLIENT_SECRET
+DOMAIN = constants.DOMAIN
 # For example
 # DOMAIN = 'fall21.us.auth0.com'
 

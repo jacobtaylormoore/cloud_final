@@ -15,7 +15,7 @@ from os import environ as env
 from werkzeug.exceptions import HTTPException
 
 from authlib.integrations.flask_client import OAuth
-import controllers.boat_controller as boat_controller
+import controllers.old_boat_controller as old_boat_controller
 # from jwt_handler import verify_jwt, CLIENT_ID, CLIENT_SECRET, DOMAIN
 import src.old_constants as old_constants
 

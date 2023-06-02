@@ -1,0 +1,4 @@
+Username-Password-Authentication
+domain = mooreja2-cloud-final.us.auth0.com
+clientid = zE7ZrjwiVUcNZlrKpYfkJWk5tzMlaPCI
+clientsecret = AP6ekoxxGZIUwFRC4C04D7SA8b14gS7UxeEBTLXtIFIfEcdQH-5R53VuwEIdJst6
