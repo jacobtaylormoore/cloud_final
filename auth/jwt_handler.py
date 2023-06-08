@@ -1,73 +1,69 @@
-from google.cloud import datastore
-from flask import Flask, request, jsonify, _request_ctx_stack
-import requests
-
-from functools import wraps
 import json
-
 from six.moves.urllib.request import urlopen
-from flask_cors import cross_origin
 from jose import jwt
-
-
-import json
-from os import environ as env
-from werkzeug.exceptions import HTTPException
-
-from dotenv import load_dotenv, find_dotenv
-from flask import Flask
-from flask import jsonify
-from flask import redirect
-from flask import render_template
-from flask import session
-from flask import url_for
-from authlib.integrations.flask_client import OAuth
-from six.moves.urllib.parse import urlencode
-# import boat
-from src.main import app
+from error_handlers.error_handlers import AuthError
+# from main import AuthError, DOMAIN, ALGORITHMS, CLIENT_ID
 import src.constants as constants
 
-# app = Flask(__name__)
-app.secret_key = constants.SECRET_KEY
-# Update the values of the following 3 variables
+ALGORITHMS = ["RS256"]
 CLIENT_ID = constants.CLIENT_ID
 CLIENT_SECRET = constants.CLIENT_SECRET
 DOMAIN = constants.DOMAIN
-# For example
-# DOMAIN = 'fall21.us.auth0.com'
-
-ALGORITHMS = ["RS256"]
-
-oauth = OAuth(app)
-
-auth0 = oauth.register(
-    'auth0',
-    client_id=CLIENT_ID,
-    client_secret=CLIENT_SECRET,
-    api_base_url="https://" + DOMAIN,
-    access_token_url="https://" + DOMAIN + "/oauth/token",
-    authorize_url="https://" + DOMAIN + "/authorize",
-    client_kwargs={
-        'scope': 'openid profile email',
-    },
-)
-
-# This code is adapted from https://auth0.com/docs/quickstart/backend/python/01-authorization?_ga=2.46956069.349333901.1589042886-466012638.1589042885#create-the-jwt-validation-decorator
 
 
-class AuthError(Exception):
-    def __init__(self, error, status_code):
-        self.error = error
-        self.status_code = status_code
+def verify_jwt_no_errors(request):
+    if 'Authorization' in request.headers:
+        auth_header = request.headers['Authorization'].split()
+        token = auth_header[1]
+    else:
+        return ({"code": "no auth header",
+                         "description":
+                 "Authorization header is missing"}, False)
 
+    jsonurl = urlopen("https://" + DOMAIN+"/.well-known/jwks.json")
+    jwks = json.loads(jsonurl.read())
+    try:
+        unverified_header = jwt.get_unverified_header(token)
+    except jwt.JWTError:
+        return ({"code": "invalid_header",
+                 "description":
+                 "Invalid header. "
+                 "Use an RS256 signed JWT Access Token"}, False)
+    if unverified_header["alg"] == "HS256":
+        return ({"code": "invalid_header",
+                 "description":
+                 "Invalid header. "
+                 "Use an RS256 signed JWT Access Token"}, False)
+    rsa_key = {}
+    for key in jwks["keys"]:
+        if key["kid"] == unverified_header["kid"]:
+            rsa_key = {
+                "kty": key["kty"],
+                "kid": key["kid"],
+                "use": key["use"],
+                "n": key["n"],
+                "e": key["e"]
+            }
+    if rsa_key:
+        try:
+            payload = jwt.decode(
+                token,
+                rsa_key,
+                algorithms=ALGORITHMS,
+                audience=CLIENT_ID,
+                issuer="https://" + DOMAIN+"/"
+            )
+        except Exception:
+            return ({"code": "invalid_header",
+                     "description":
+                     "Unable to parse authentication"
+                     " token."}, False)
 
-@app.errorhandler(AuthError)
-def handle_auth_error(ex):
-    response = jsonify(ex.error)
-    response.status_code = ex.status_code
-    return response
-
-# Verify the JWT in the request's Authorization header
+        return (payload, True)
+    else:
+        return ({"code": "no_rsa_key",
+                         "description":
+                 "No RSA key in JWKS"}, False)
 
 
 def verify_jwt(request):
