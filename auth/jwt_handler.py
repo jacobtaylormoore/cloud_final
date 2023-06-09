@@ -127,3 +127,6 @@ def verify_jwt(request):
         raise AuthError({"code": "no_rsa_key",
                          "description":
                          "No RSA key in JWKS"}, 401)
+
+
+# def jwt_get_sub(request):

@@ -21,6 +21,7 @@ import controllers.load_controller as load
 import error_handlers.error_handlers as error_handlers
 from error_handlers.error_handlers import AuthError
 from auth.jwt_handler import verify_jwt
+import models.user as user_model
 
 import src.constants as constants
 
@@ -54,15 +55,15 @@ auth0 = oauth.register(
 
 @app.route("/")
 def home():
-    # temp = session.get("user")
+    # temp = session.get(("user"), indent=4)
     query = client.query(kind="User")
     info = list(query.fetch())
-    # temp = json.dumps(session.get("user"), indent=4)
+    temp = json.dumps(session.get("user"), indent=4)
 
     return render_template(
         "home.html",
         session=session.get("user"),
-        pretty=json.dumps(info),
+        pretty=temp,
     )
 
 
@@ -76,24 +77,42 @@ def decode_jwt():
 def callback():
     token = oauth.auth0.authorize_access_token()
     session["user"] = token
-    user_key = client.key("User")
-    user = datastore.Entity(key=user_key)
-    user.update(
-        {
-            "user_id": token["userinfo"]["sub"],
-            "boats": [],
-            "name": token["userinfo"]["nickname"]
-        }
-    )
-    client.put(user)
+    user = user_model.User(token["userinfo"]["sub"],
+                           token["userinfo"]["nickname"],
+                           [])
+    user.save_if_new()
+    # user_key = client.key("User")
+    # user = datastore.Entity(key=user_key)
+    # user.update(
+    #     {
+    #         "user_id": token["userinfo"]["sub"],
+    #         "boats": [],
+    #         "name": token["userinfo"]["nickname"]
+    #     }
+    # )
+    # client.put(user)
     return redirect("/")
 
 
-@app.route("/login")
+@app.route("/login", methods=['GET', 'POST'])
 def login():
-    return oauth.auth0.authorize_redirect(
-        redirect_uri=url_for("callback", _external=True)
-    )
+    if request.method == 'GET':
+        return oauth.auth0.authorize_redirect(
+            redirect_uri=url_for("callback", _external=True)
+        )
+    elif request.method == 'POST':
+        content = request.get_json()
+        username = content["username"]
+        password = content["password"]
+        body = {'grant_type': 'password', 'username': username,
+                'password': password,
+                'client_id': CLIENT_ID,
+                'client_secret': CLIENT_SECRET
+                }
+        headers = {'content-type': 'application/json'}
+        url = 'https://' + DOMAIN + '/oauth/token'
+        r = requests.post(url, json=body, headers=headers)
+        return r.text, 200, {'Content-Type': 'application/json'}
 
 
 @app.route("/logout")
