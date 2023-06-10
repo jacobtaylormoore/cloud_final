@@ -37,6 +37,9 @@ class Boat:
 
     # Edit boat (put)
     def put_boat(self, boat_id, name, type, length, loads):
+        ####################################
+        # update loads
+        ####################################
         boat_key = client.key(constants.boats, int(boat_id))
         boat = client.get(key=boat_key)
         if boat is None:
@@ -69,6 +72,9 @@ class Boat:
             self.length = length
         if loads:
             self.loads = loads
+####################################
+# update loads
+####################################
         boat.update(
             {
                 "name": self.name,
@@ -83,6 +89,21 @@ class Boat:
         boat["self"] = constants.app_url + '/boats/' + str(boat_id)
         return boat
 
+    # Add load to boat
+    def add_load(self, load_id, boat_id):
+        if int(load_id) in self.loads:
+            return get_boat_from_id(boat_id=boat_id)
+        self.loads.append(int(load_id))
+        return self.patch_boat(boat_id=boat_id, name=None, type=None, length=None, loads=self.loads)
+
+    # Remove load from boat
+    def remove_load(self, load_id, boat_id):
+        if int(load_id) not in self.loads:
+            return
+        self.loads.remove(load_id)
+        self.patch_boat(boat_id=boat_id, name=None, type=None,
+                        length=None, loads=self.loads)
+        return
 
 ##############################################################################
 ##############################################################################
@@ -139,6 +160,9 @@ def get_boats(owner_id, limit, offset, url):
 
 
 def delete_boat(boat_id, user_id):
+    ####################################
+    # update loads
+    ####################################
     user = user_model.get_user_by_id(user_id)
     user.remove_boat(int(boat_id))
     boat, boat_key = get_boat_from_id(boat_id)
@@ -150,10 +174,14 @@ def delete_boat(boat_id, user_id):
 
 
 def delete_all_boats():
+    ####################################
+    # update loads
+    ####################################
     query = client.query(kind=constants.boats)
     results = list(query.fetch())
     for e in results:
         client.delete(e.key)
+    user_model.remove_all_boats()
     return
 
 

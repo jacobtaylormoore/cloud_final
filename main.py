@@ -22,6 +22,8 @@ import error_handlers.error_handlers as error_handlers
 from error_handlers.error_handlers import AuthError
 from auth.jwt_handler import verify_jwt
 import models.user as user_model
+import models.boat as boat_model
+import models.load as load_model
 
 import src.constants as constants
 
@@ -130,6 +132,16 @@ def logout():
             quote_via=quote_plus,
         )
     )
+
+
+##############################################
+# Testing purposes only
+##############################################
+@app.route("/deleteall", methods=['DELETE'])
+def delete_all():
+    load_model.delete_all_loads()
+    boat_model.delete_all_boats()
+    return {}, 204
 
 
 if __name__ == '__main__':

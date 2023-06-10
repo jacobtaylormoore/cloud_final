@@ -55,6 +55,11 @@ class User:
         client.put(update_user)
         return
 
+    def remove_all_boats(self):
+        self.boats = []
+        self.update_table()
+        return True
+
 
 ##############################################################################
 ##############################################################################
@@ -78,6 +83,16 @@ def get_user_by_id(user_id):
     return user
 
 
+def get_user_obj(user_id):
+    user_key = client.key(constants.users, user_id)
+    user = client.get(key=user_key)
+    if user is None:
+        return 404
+    else:
+        ret_user = User(user["user_id"], user["name"], user["boats"])
+        return ret_user
+
+
 def get_all_users():
     query = client.query(kind=constants.users)
     results_list = list(query.fetch())
@@ -89,6 +104,25 @@ def delete_all_users():
     results_list = list(query.fetch())
     for e in results_list:
         client.delete(e.key)
+    return
+
+    ####################################
+    # For testing purposes
+    ####################################
+
+
+def remove_all_boats():
+    query = client.query(kind=constants.users)
+    users = list(query.fetch())
+    for user in users:
+        user_obj = get_user_obj(user["user_id"])
+        print('USER OBJECT BEFORE DELETION:')
+        print(user_obj)
+        print('\n\n')
+        user_obj.remove_all_boats()
+        print('USER OBJECT AFTER DELETION:')
+        print(user_obj)
+        print('\n\n')
     return
 
 

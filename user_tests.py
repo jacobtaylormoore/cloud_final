@@ -1,14 +1,16 @@
 import models.user as user
 import models.boat as boat
+import models.load as load
 import unittest
 import os
 
-print(user.get_all_users())
-print(boat.get_all_boats())
-user.delete_all_users()
+# print(user.get_all_users())
+# print(boat.get_all_boats())
+# user.delete_all_users()
 boat.delete_all_boats()
 print(user.get_all_users())
-print(boat.get_all_boats())
+load.delete_all_loads()
+# print(boat.get_all_boats())
 # print('\n\n')
 # print(user.get_all_users())
 # print('\n\n')
