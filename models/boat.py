@@ -36,10 +36,52 @@ class Boat:
         return boat
 
     # Edit boat (put)
-    # def put_boat():
+    def put_boat(self, boat_id, name, type, length, loads):
+        boat_key = client.key(constants.boats, int(boat_id))
+        boat = client.get(key=boat_key)
+        if boat is None:
+            return 404
+        boat.update(
+            {
+                "name": name,
+                "type": type,
+                "length": length,
+                "loads": loads,
+                "owner": self.owner
+            }
+        )
+        client.put(boat)
+        boat["id"] = int(boat_id)
+        boat["self"] = constants.app_url + '/boats/' + str(boat_id)
+        return boat
 
     # Edit boat (patch)
-    # def patch_boat():
+    def patch_boat(self, boat_id, name, type, length, loads):
+        boat_key = client.key(constants.boats, int(boat_id))
+        boat = client.get(key=boat_key)
+        if boat is None:
+            return 404
+        if name:
+            self.name = name
+        if type:
+            self.type = type
+        if length:
+            self.length = length
+        if loads:
+            self.loads = loads
+        boat.update(
+            {
+                "name": self.name,
+                "type": self.type,
+                "length": self.length,
+                "loads": self.loads,
+                "owner": self.owner
+            }
+        )
+        client.put(boat)
+        boat["id"] = int(boat_id)
+        boat["self"] = constants.app_url + '/boats/' + str(boat_id)
+        return boat
 
 
 ##############################################################################
@@ -57,6 +99,16 @@ def get_boat_from_id(boat_id):
         boat["self"] = constants.app_url + '/boats/' + str(boat_id)
         return boat, boat_key
 
+
+def get_boat_obj(boat_id):
+    boat_key = client.key(constants.boats, int(boat_id))
+    boat = client.get(key=boat_key)
+    if boat is None:
+        return 404
+    else:
+        ret_boat = Boat(boat["name"], boat["type"],
+                        boat["length"], boat["loads"], boat["owner"])
+        return ret_boat
 # Get all boats of owner - jwt sub is user id
 
 
