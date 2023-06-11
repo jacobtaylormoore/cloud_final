@@ -11,21 +11,13 @@ client = datastore.Client()
 class Load:
 
     def __init__(self, volume, description, carrier=None, creation_date=None):
-        print(volume)
-        print(description)
-        print(carrier)
-        print(creation_date)
         self.volume = volume
         self.description = description
         self.carrier = carrier
         self.creation_date = creation_date
-        print(self.volume)
-        print(self.description)
-        print(self.carrier)
-        print(self.creation_date)
 
     def __str__(self):
-        return "Volume: " + self.volume + "\n" + "Description: " + self.description + "\n" + "Carrier: " + str(self.carrier) + "Creation Date: " + self.creation_date + "\n"
+        return "Volume: " + str(self.volume) + "\n" + "Description: " + self.description + "\n" + "Carrier: " + str(self.carrier) + "Creation Date: " + self.creation_date + "\n"
 
     def create_new_load(self):
         today = date.today()
@@ -45,7 +37,7 @@ class Load:
         return load
 
     def update_table(self, load_id):
-        load_key = client.key(constants.load, int(load_id))
+        load_key = client.key(constants.loads, int(load_id))
         update_load = datastore.Entity(key=load_key)
         update_load.update(
             {
@@ -66,8 +58,33 @@ class Load:
         new_load["self"] = constants.app_url + '/loads/' + str(load_id)
         return new_load
 
-    def patch_load():
-        pass
+    def patch_load(self, load_id, volume, description, carrier):
+        load_key = client.key(constants.loads, int(load_id))
+        load = client.get(key=load_key)
+        if load is None:
+            return 404
+        if volume:
+            self.volume = volume
+        if description:
+            self.description = description
+        if carrier:
+            self.carrier = carrier
+
+####################################
+# update loads
+####################################
+        load.update(
+            {
+                "volume": self.volume,
+                "description": self.description,
+                "carrier": self.carrier,
+                "creation_date": self.creation_date
+            }
+        )
+        client.put(load)
+        load["id"] = int(load_id)
+        load["self"] = constants.app_url + '/loads/' + str(load_id)
+        return load
 
 
 ##############################################################################
@@ -88,17 +105,11 @@ def get_load_from_id(load_id):
 def get_load_obj(load_id):
     load_key = client.key(constants.loads, int(load_id))
     load = client.get(key=load_key)
-    print("LOAD: ")
-    print(load["volume"])
-    print('\n\n')
     if load is None:
         return 404
     else:
         ret_load = Load(load["volume"], load["description"],
                         load["carrier"], load["creation_date"])
-        print("RET LOAD: ")
-        print(ret_load)
-        print('\n\n')
         return ret_load
 
 
@@ -155,5 +166,5 @@ def delete_all_loads():
     query = client.query(kind=constants.loads)
     results = list(query.fetch())
     for e in results:
-        client.delete(e.key)
+        delete_load(e["id"])
     return
