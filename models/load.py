@@ -17,7 +17,7 @@ class Load:
         self.creation_date = creation_date
 
     def __str__(self):
-        return "Volume: " + str(self.volume) + "\n" + "Description: " + self.description + "\n" + "Carrier: " + str(self.carrier) + "Creation Date: " + self.creation_date + "\n"
+        return "Volume: " + str(self.volume) + "\n" + "Description: " + self.description + "\n" + "Carrier: " + str(self.carrier) + "\n" + "Creation Date: " + self.creation_date + "\n"
 
     def create_new_load(self):
         today = date.today()
@@ -58,7 +58,7 @@ class Load:
         new_load["self"] = constants.app_url + '/loads/' + str(load_id)
         return new_load
 
-    def patch_load(self, load_id, volume, description, carrier):
+    def patch_load(self, load_id, volume, description):
         load_key = client.key(constants.loads, int(load_id))
         load = client.get(key=load_key)
         if load is None:
@@ -67,12 +67,6 @@ class Load:
             self.volume = volume
         if description:
             self.description = description
-        if carrier:
-            self.carrier = carrier
-
-####################################
-# update loads
-####################################
         load.update(
             {
                 "volume": self.volume,
@@ -85,6 +79,22 @@ class Load:
         load["id"] = int(load_id)
         load["self"] = constants.app_url + '/loads/' + str(load_id)
         return load
+
+    def remove_carrier(self, load_id):
+        if self.carrier:
+            boat = boat_model.get_boat_obj(int(self.carrier))
+            if boat == 404:
+                return 404
+            boat.remove_load(int(load_id), int(self.carrier))
+        self.carrier = None
+        self.update_table(int(load_id))
+        return
+
+    def add_carrier(self, boat_id, load_id):
+        self.remove_carrier(int(load_id))
+        self.carrier = int(boat_id)
+        self.update_table(int(load_id))
+        return
 
 
 ##############################################################################
@@ -121,7 +131,8 @@ def delete_load(load_id):
     if load["carrier"]:
         boat_id = load["carrier"]
         boat = boat_model.get_boat_obj(boat_id=int(boat_id))
-        boat.remove_load(int(load_id), int(boat_id))
+        if boat != 404:
+            boat.remove_load(int(load_id), int(boat_id))
     client.delete(load_key)
     return 204
 
@@ -139,6 +150,7 @@ def remove_carrier(boat_id):
 
 
 def get_loads(limit, offset, url):
+    all, num = get_loads_no_pagination()
     query = client.query(kind=constants.loads)
     q_limit = limit
     q_offset = offset
@@ -154,17 +166,36 @@ def get_loads(limit, offset, url):
     for e in results:
         e["id"] = e.key.id
     output = {"loads": results}
+    output["num_loads"] = num
     if next_url:
         output["next"] = next_url
     return json.dumps(output)
 
 
+def get_loads_no_pagination():
+    query = client.query(kind=constants.loads)
+    results = list(query.fetch())
+    return results, len(results)
+
+
+def validate_loads(loads_array):
+    results, num = get_loads_no_pagination()
+    load_ids = []
+    for e in results:
+        load_ids.append(e.key.id)
+    for load in loads_array:
+        if int(load) not in load_ids:
+            return False
+    return True
+
+
 def delete_all_loads():
-    ###########
-    # Will need to update when connection with boats added
-    ###########
     query = client.query(kind=constants.loads)
     results = list(query.fetch())
     for e in results:
-        delete_load(e["id"])
+        if e["carrier"]:
+            boat = boat_model.get_boat_obj(int(e["carrier"]))
+            if boat != 404:
+                boat.remove_load(int(e.key.id), int(e["carrier"]))
+        delete_load(int(e.key.id))
     return

@@ -2,7 +2,7 @@
 from flask import Flask, Blueprint, request, make_response
 from google.cloud import datastore
 import json
-from auth.jwt_handler import verify_jwt, verify_jwt_no_errors
+from auth.jwt_handler import verify_jwt, validate_mime
 import models.boat as boat_model
 import src.constants as constants
 from error_handlers.error_handlers import raise_error
@@ -14,6 +14,8 @@ bp = Blueprint('boat', __name__, url_prefix='/boats')
 
 @bp.route('', methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])
 def boats_get_post():
+    if validate_mime(request) == 406:
+        return raise_error(406)
     try:
         payload = verify_jwt(request)
         sub = payload["sub"]
@@ -26,9 +28,16 @@ def boats_get_post():
     elif request.method == 'POST':
         try:
             content = request.get_json()
+            keys = dict.keys(content)
+            if len(keys) > 4:
+                return raise_error(400)
+            if "loads" in keys and content["loads"]:
+                return raise_error(400)
             boat = boat_model.Boat(
-                content["name"], content["type"], content["length"], content["loads"], sub)
+                content["name"], content["type"], content["length"], sub)
             saved = boat.save_boat()
+            if saved == 400:
+                return raise_error(400)
             return json.dumps(saved), 201
         except:
             return raise_error(400)
@@ -39,6 +48,8 @@ def boats_get_post():
 
 @bp.route('/<boat_id>', methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])
 def boat_get_delete_edit(boat_id):
+    if not boat_id:
+        return raise_error(400)
     boat, boat_key = boat_model.get_boat_from_id(boat_id)
     if boat_key == -1:
         return raise_error(boat)
@@ -49,6 +60,8 @@ def boat_get_delete_edit(boat_id):
         return raise_error(401)
 
     if request.method == 'GET':
+        if validate_mime(request) == 406:
+            return raise_error(406)
         if boat["owner"] != sub:
             return raise_error(403)
         else:
@@ -62,17 +75,23 @@ def boat_get_delete_edit(boat_id):
             return {}, 204
 
     elif request.method == 'PUT':
-        ################################
-        # Update to edit loads if necessary
-        ################################
+        if validate_mime(request) == 406:
+            return raise_error(406)
         if boat["owner"] != sub:
             return raise_error(403)
         # Check that request contains all variables to update
         try:
             content = request.get_json()
+            keys = dict.keys(content)
+            if len(keys) > 4:
+                return raise_error(400)
+            if "loads" in keys and content["loads"]:
+                return raise_error(400)
             boat = boat_model.get_boat_obj(boat_id)
             put = boat.put_boat(int(boat_id), content["name"], content["type"],
-                                content["length"], content["loads"])
+                                content["length"])
+            if put == 400:
+                return raise_error(400)
             if put == 404:
                 return raise_error(404)
             return json.dumps(put), 200
@@ -80,16 +99,23 @@ def boat_get_delete_edit(boat_id):
             return raise_error(400)
 
     elif request.method == 'PATCH':
+        if validate_mime(request) == 406:
+            return raise_error(406)
         if boat["owner"] != sub:
             return raise_error(403)
         try:
             content = request.get_json()
+            keys = dict.keys(content)
+            if len(keys) > 3:
+                return raise_error(400)
+            if "loads" in keys:
+                return raise_error(400)
             boat = boat_model.get_boat_obj(boat_id)
             keys = list(dict.keys(content))
-            test_keys = ["name", "type", "length", "loads"]
+            test_keys = ["name", "type", "length"]
             # Vals contains values to send to user.patch_boat(). If none, value was not sent
             # Values sent to patch_boat as none will not be changed
-            vals = [None, None, None, None]
+            vals = [None, None, None]
             for key in keys:
                 if key not in test_keys:
                     return raise_error(400)
@@ -99,19 +125,14 @@ def boat_get_delete_edit(boat_id):
                     vals[1] = content["type"]
                 elif key == test_keys[2]:
                     vals[2] = content["length"]
-                elif key == test_keys[3]:
-                    vals[3] = content["loads"]
                 else:
                     return raise_error(400)
-
-################################
-# Update to edit loads if necessary
-################################
-
             patch = boat.patch_boat(boat_id=int(
-                boat_id), name=vals[0], type=vals[1], length=vals[2], loads=vals[3])
+                boat_id), name=vals[0], type=vals[1], length=vals[2])
             if patch == 404:
                 return raise_error(404)
+            if patch == 400:
+                return raise_error(400)
             return json.dumps(patch), 200
         except:
             return raise_error(400)

@@ -2,6 +2,7 @@ import json
 from six.moves.urllib.request import urlopen
 from jose import jwt
 from error_handlers.error_handlers import AuthError
+from flask import request
 # from main import AuthError, DOMAIN, ALGORITHMS, CLIENT_ID
 import src.constants as constants
 
@@ -129,4 +130,11 @@ def verify_jwt(request):
                          "No RSA key in JWKS"}, 401)
 
 
-# def jwt_get_sub(request):
+def validate_mime(request):
+    types = [constants.json]
+    for type in types:
+        if type in request.accept_mimetypes:
+            return True
+    return 406
+
+    # def jwt_get_sub(request):

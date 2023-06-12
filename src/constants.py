@@ -1,8 +1,8 @@
 boats = "boats"
 users = "User"
 loads = "loads"
-# app_url = "https://mooreja2-rest.uc.r.appspot.com"
-app_url = "http://localhost:8080"
+app_url = "https://cloud-final-388620.uc.r.appspot.com"
+# app_url = "http://localhost:8080"
 json = "application/json"
 html = "text/html"
 

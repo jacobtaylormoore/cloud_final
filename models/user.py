@@ -65,12 +65,6 @@ class User:
 ##############################################################################
 
 
-# def user_test(user_id):
-#     user_key = client.key(constants.users, user_id)
-#     user = client.get(key=user_key)
-#     return user
-
-
 def get_user_by_id(user_id):
     query = client.query(kind=constants.users)
     query.add_filter("user_id", "=", user_id)
@@ -98,6 +92,10 @@ def get_all_users():
     results_list = list(query.fetch())
     return json.dumps(results_list)
 
+    ####################################
+    # For testing purposes
+    ####################################
+
 
 def delete_all_users():
     query = client.query(kind=constants.users)
@@ -106,25 +104,11 @@ def delete_all_users():
         client.delete(e.key)
     return
 
-    ####################################
-    # For testing purposes
-    ####################################
-
 
 def remove_all_boats():
     query = client.query(kind=constants.users)
     users = list(query.fetch())
     for user in users:
         user_obj = get_user_obj(user["user_id"])
-        print('USER OBJECT BEFORE DELETION:')
-        print(user_obj)
-        print('\n\n')
         user_obj.remove_all_boats()
-        print('USER OBJECT AFTER DELETION:')
-        print(user_obj)
-        print('\n\n')
     return
-
-
-def get_boats_from_user(user_id):
-    pass
